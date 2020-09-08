@@ -23,7 +23,7 @@ const commands = [
         response: (ctx, msg) => `@${ctx.username} !yaş - !boy - !diller - !okul`
     },
     {
-        condition: c => c.includes('okul') || c.includes('bölüm'),
+        condition: c => c === '!okul' || c === '!bölüm' || c.includes('hangi okul') || c.includes('hangi bölüm') || c.includes('okul bölüm') || c.includes('okul ve bölüm'),
         response: (ctx, msg) => `@${ctx.username} Amerika veya Kanada'da İşletme ve Uluslararası İlişkiler okumak istiyorum.`
     },
     {
