@@ -32,7 +32,7 @@ const commands = [
     },
     {
         condition: c => c === '!boy',
-        response: (ctx, msg) => `@${ctx.username} 1.73`
+        response: (ctx, msg) => `@${ctx.username} 1.76`
     },
     {
         condition: c => c === '!diller' || c.includes('kaç dil'),
