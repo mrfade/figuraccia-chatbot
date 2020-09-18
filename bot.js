@@ -27,7 +27,7 @@ const commands = [
         response: (ctx, msg) => `@${ctx.username} Amerika veya Kanada'da İşletme ve Uluslararası İlişkiler okumak istiyorum.`
     },
     {
-        condition: c => c === '!yaş' || c.includes(' yaş '),
+        condition: c => c === '!yaş' || c === 'yaş',
         response: (ctx, msg) => `@${ctx.username} 18`
     },
     {
