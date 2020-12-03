@@ -1,4 +1,4 @@
-# A simple chatbot for [figuraccia](https://twitch.tv/figuraccia)
+## A simple chatbot for [figuraccia](https://twitch.tv/figuraccia)
 
 ```bash
 # install dependencies

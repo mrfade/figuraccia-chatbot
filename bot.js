@@ -1,5 +1,15 @@
 const tmi = require('tmi.js')
+const sqlite3 = require('sqlite3').verbose()
 require('dotenv').config()
+
+const {
+    getCommands,
+    getCommand,
+    addCommand,
+    editCommand,
+    removeCommand,
+    logMessage
+} = require('./utils')
 
 const opts = {
     connection: {
@@ -17,47 +27,87 @@ const opts = {
 
 const client = new tmi.client(opts)
 
-const commands = [
-    {
-        condition: c => c === '!komutlar',
-        response: (ctx, msg) => `@${ctx.username} !yaş - !boy - !diller - !okul`
-    },
-    {
-        condition: c => c === '!okul' || c === '!bölüm' || c.includes('hangi okul') || c.includes('hangi bölüm') || c.includes('okul bölüm') || c.includes('okul ve bölüm'),
-        response: (ctx, msg) => `@${ctx.username} Amerika veya Kanada'da İşletme ve Uluslararası İlişkiler okumak istiyorum.`
-    },
-    {
-        condition: c => c === '!yaş' || c === 'yaş',
-        response: (ctx, msg) => `@${ctx.username} 18`
-    },
-    {
-        condition: c => c === '!boy',
-        response: (ctx, msg) => `@${ctx.username} 1.76`
-    },
-    {
-        condition: c => c === '!diller' || c.includes('kaç dil'),
-        response: (ctx, msg) => `@${ctx.username} Türkçe, İngilizce, Fransızca, İtalyanca`
-    },
-    {
-        condition: c => c === '!languages',
-        response: (ctx, msg) => `@${ctx.username} Turkish, English, French, Italian`
-    },
-    {
-        condition: c => c.includes('evlimisin') || c.includes('evli misin'),
-        response: (ctx, msg) => `@${ctx.username} değilim, okul yüzüğüm.`
-    },
-]
+let db = new sqlite3.Database('./database.db')
+let chatlogDb = new sqlite3.Database('./chatlog.db')
 
 client.on('message', (target, context, msg, self) => {
+
+    const channel = target
+    const message = msg.trim()
+
+    const datetime = (new Date()).toISOString()
+    logMessage(chatlogDb, channel, context.username, JSON.stringify(context), message, datetime)
+
     if (self) return
 
-    const commandName = msg.trim()
+    if (message.startsWith('!')) {
 
-    for (const command of commands) {
-        if (command.condition(commandName)) {
-            client.say(target, command.response(context, msg))
-            break
+        const args = message.slice(1).split(' ')
+        const command = args.shift().toLowerCase()
+
+        if (context.mod || context.badges.broadcaster) {
+
+            if (command === 'modcomms') {
+                client.whisper(context.username, `!addcomm - Komut ekler, kullanım: !addcomm sa as
+                !editcomm - Komutu düzenler, kullanım: !editcomm sa ashg
+                !removecomm - Komutu siler, kullanım: !removecomm sa`)
+            }
+
+            if (command === 'allcomms') {
+                getCommands(db, channel).then(rows => {
+                    const commands = rows.map(row => {
+                        return '!' + row.command
+                    })
+                    client.say(target, 'Komutlar: ' + commands.join(' '))
+                }).catch(err => { })
+            }
+
+            if (command === 'addcomm') {
+                const commandName = args.shift().toLowerCase()
+
+                getCommand(db, channel, commandName).then(data => {
+                    console.log('data', data)
+                    client.say(target, 'Bu komut zaten mevcut.')
+                }).catch(err => {
+                    addCommand(db, channel, commandName, args.join(' ')).then(() => {
+                        client.say(target, 'Komut başarıyla eklendi.')
+                    }).catch(err => {
+                        client.say(target, 'Komut eklenirken bir sorun oluştu.')
+                    })
+                })
+            }
+
+            if (command === 'editcomm') {
+                const commandName = args.shift().toLowerCase()
+                getCommand(db, channel, commandName).then(() => {
+                    editCommand(db, channel, commandName, args.join(' ')).then(() => {
+                        client.say(target, 'Komut başarıyla güncellendi.')
+                    }).catch(err => {
+                        client.say(target, 'Komut güncellenirken bir sorun oluştu.')
+                    })
+                }).catch(err => {
+                    client.say(target, 'Komut bulunamadı.')
+                })
+            }
+
+            if (command === 'removecomm') {
+                const commandName = args.shift().toLowerCase()
+                getCommand(db, channel, commandName).then(() => {
+                    removeCommand(db, channel, commandName).then(() => {
+                        client.say(target, 'Komut başarıyla silindi.')
+                    }).catch(err => {
+                        client.say(target, 'Komut silinirken bir sorun oluştu.')
+                    })
+                }).catch(err => {
+                    client.say(target, 'Komut bulunamadı.')
+                })
+            }
+
         }
+
+        getCommand(db, channel, command).then(data => {
+            client.say(target, `@${context.username} ${data.response}`)
+        }).catch(err => { })
     }
 
 })
